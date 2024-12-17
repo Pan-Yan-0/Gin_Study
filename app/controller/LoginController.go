@@ -2,7 +2,9 @@
 package controller
 
 import (
+	"LoginStudy/app/repository"
 	"LoginStudy/app/service"
+	"LoginStudy/app/util"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -13,7 +15,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-// Login handles user login
+// Login handles user login and returns JWT if credentials are valid
 func Login(c *gin.Context) {
 	var loginReq LoginRequest
 
@@ -23,12 +25,20 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Call the LoginService to authenticate
-	if err := service.Authenticate(loginReq.Username, loginReq.Password); err != nil {
+	// Instantiate the service and authenticate the user
+	loginService := service.LoginService{UserRepo: &repository.UserRepository{}}
+	if err := loginService.Authenticate(loginReq.Username, loginReq.Password); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Respond with a success message
-	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
+	// Generate JWT token
+	token, err := util.GenerateToken(loginReq.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
+		return
+	}
+
+	// Respond with the token
+	c.JSON(http.StatusOK, gin.H{"message": "Login successful", "token": token})
 }

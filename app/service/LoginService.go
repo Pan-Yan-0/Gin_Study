@@ -2,23 +2,21 @@
 package service
 
 import (
-	"LoginStudy/app/database"
-	"database/sql"
+	"LoginStudy/app/repository"
 	"fmt"
 )
 
-// Authenticate checks the user's credentials
-func Authenticate(username, password string) error {
-	var dbPassword string
+// LoginService handles the business logic for user authentication
+type LoginService struct {
+	UserRepo *repository.UserRepository
+}
 
-	// Query the database to get the stored password for the given username
-	err := database.DB.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&dbPassword)
-	if err == sql.ErrNoRows {
-		// User not found
-		return fmt.Errorf("username not found")
-	} else if err != nil {
-		// Other database errors
-		return fmt.Errorf("internal server error")
+// Authenticate checks the user's credentials
+func (s *LoginService) Authenticate(username, password string) error {
+	// Get the stored password from the repository
+	dbPassword, err := s.UserRepo.GetPasswordByUsername(username)
+	if err != nil {
+		return err
 	}
 
 	// In a real-world app, you should hash the password and compare it (bcrypt)
